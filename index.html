@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deploying with Docker &amp; Containers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/theme/black.min.css">
+<style>
+  :root {
+    --amber:  #f5a623;
+    --green:  #4ecb8d;
+    --purple: #a78bfa;
+    --blue:   #60a5fa;
+    --red:    #f87171;
+    --bg:     #0a0a0f;
+    --bg2:    #10101a;
+    --bg3:    #181824;
+    --border: #2a2a3a;
+    --text:   #e8e8f0;
+    --muted:  #8888a8;
+  }
+
+  .reveal-viewport { background: var(--bg); }
+  .reveal .slides section { background: transparent; }
+
+  .reveal { font-family: 'DM Sans', sans-serif; color: var(--text); }
+  .reveal h1, .reveal h2, .reveal h3 { font-family: 'Playfair Display', serif; font-weight: 700; }
+  .reveal h1 { font-size: 1.6em; color: var(--amber); line-height: 1.1; }
+  .reveal h2 { font-size: 1.1em; color: var(--amber); margin-bottom: .2em; }
+  .reveal h3 { font-size: .78em; color: var(--green); margin-bottom: .15em; }
+  .reveal p  { font-size: .56em; line-height: 1.45; color: var(--text); }
+  .reveal li { font-size: .54em; line-height: 1.45; margin-bottom: .1em; }
+  .reveal code { font-family: 'JetBrains Mono', monospace; font-size: .72em; }
+  .reveal pre  { box-shadow: none; background: var(--bg3); border: 1px solid var(--border);
+                 border-radius: 6px; padding: .3em .5em; margin: .25em 0; }
+  .reveal pre code { font-size: .52em; line-height: 1.35; background: transparent; color: #cdd6f4; }
+
+  /* ── slide chrome ── */
+  .slide-hdr {
+    display: flex; align-items: center; gap: .4em;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: .2em; margin-bottom: .3em;
+  }
+  .slide-hdr .tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .42em; font-weight: 500;
+    color: var(--bg); background: var(--amber);
+    padding: .1em .4em; border-radius: 3px;
+    letter-spacing: .04em;
+  }
+  .slide-hdr h2 { margin: 0; font-size: .95em; }
+
+  /* ── two-column ── */
+  .cols   { display: grid; gap: .5em; }
+  .cols-2 { grid-template-columns: 1fr 1fr; }
+  .cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .cols-6040 { grid-template-columns: 6fr 4fr; }
+  .cols-4060 { grid-template-columns: 4fr 6fr; }
+
+  /* ── cards ── */
+  .card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 6px; padding: .35em .6em;
+  }
+  .card.amber { border-left: 3px solid var(--amber); }
+  .card.green { border-left: 3px solid var(--green); }
+  .card.purple{ border-left: 3px solid var(--purple); }
+  .card.blue  { border-left: 3px solid var(--blue); }
+  .card.red   { border-left: 3px solid var(--red); }
+  .card h3 { font-size: .64em; margin: 0 0 .12em; }
+  .card p  { font-size: .52em; margin: 0; color: #b8b8d0; }
+  .card ul { margin: 0; padding-left: 1em; }
+  .card li { font-size: .52em; color: #b8b8d0; margin-bottom: .02em; }
+
+  /* ── table ── */
+  .reveal table { width: 100%; border-collapse: collapse; font-size: .5em; }
+  .reveal table th { background: var(--bg3); color: var(--amber); font-weight: 600;
+                     padding: .2em .4em; border: 1px solid var(--border); text-align: left; }
+  .reveal table td { padding: .18em .4em; border: 1px solid var(--border); color: #ccc; }
+  .reveal table tr:nth-child(even) td { background: #0e0e18; }
+
+  /* ── accent spans ── */
+  .a  { color: var(--amber); font-weight: 600; }
+  .g  { color: var(--green); font-weight: 600; }
+  .p  { color: var(--purple); font-weight: 600; }
+  .b  { color: var(--blue); font-weight: 600; }
+  .r  { color: var(--red); font-weight: 600; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  /* ── SVG graph diagrams ── */
+  svg.diagram { display: block; margin: 0 auto; overflow: visible; }
+
+  /* ── pill badges ── */
+  .pill {
+    display: inline-block; font-family: 'JetBrains Mono', monospace;
+    font-size: .44em; padding: .08em .4em; border-radius: 99px;
+    border: 1px solid; margin: 0 .08em;
+  }
+  .pill.amber { color: var(--amber); border-color: var(--amber); }
+  .pill.green { color: var(--green); border-color: var(--green); }
+  .pill.purple{ color: var(--purple); border-color: var(--purple); }
+  .pill.blue  { color: var(--blue); border-color: var(--blue); }
+
+  /* ── footer — hidden; was overlapping scrollable content ── */
+  .reveal .slide-footer { display: none; }
+  /* title slide special */
+  .title-slide h1 { font-size: 1.8em; }
+  .title-slide .subtitle {
+    font-size: .7em; color: var(--green); font-family: 'DM Sans', sans-serif;
+    font-weight: 300; letter-spacing: .04em; margin: .3em 0 .6em;
+  }
+  .title-slide .meta { font-size: .48em; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+  /* ── super-step animator ── */
+  .ss-row {
+    display: flex; gap: .25em; align-items: center;
+    margin: .1em 0; font-size: .55em; font-family: 'JetBrains Mono', monospace;
+  }
+  .ss-node {
+    padding: .2em .55em; border-radius: 5px; font-size: .9em;
+    background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+  }
+  .ss-node.active { background: #1a2a1a; border-color: var(--green); color: var(--green); }
+  .ss-node.done   { background: #1a1a2a; border-color: var(--purple); color: var(--purple); }
+  .ss-arrow { color: var(--amber); }
+  .ss-label { font-size: .8em; color: var(--muted); margin-left: .3em; }
+
+  /* reduce default margins */
+  .reveal ul, .reveal ol { margin: .15em 0 .15em 1em; }
+.reveal .slides > section { display: flex !important; flex-direction: column !important; overflow-y: auto !important; align-items: stretch !important; justify-content: flex-start !important; }
+</style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+
+<!-- ═══════════════════════════════ SLIDE 01 — TITLE ═══════════════════════════════ -->
+<section class="title-slide" data-background-color="#0a0a0f">
+  <div style="text-align:left; max-width:820px; margin:0 auto; padding: 1em 0;">
+    <div style="font-family:'JetBrains Mono',monospace; font-size:.5em; color:var(--muted); margin-bottom:.4em; letter-spacing:.1em;">
+      TECHNICAL PRESENTATION
+    </div>
+    <h1>Deploying with<br>Docker &amp; Containers</h1>
+    <div class="subtitle">Build, Ship, and Run Anywhere</div>
+    <div style="width:60px; height:3px; background:var(--amber); margin-bottom:1.4em;"></div>
+    <div style="display:flex; gap:1.2em; flex-wrap:wrap; margin-bottom:1em;">
+      <span class="pill amber">Docker</span>
+      <span class="pill green">Containers</span>
+      <span class="pill purple">DevOps</span>
+      <span class="pill blue">Kubernetes</span>
+    </div>
+    <div class="ss-row" style="margin-top:0.6em;">
+      <span class="ss-node active">Dockerfile</span>
+      <span class="ss-arrow">&rarr;</span>
+      <span class="ss-node active">Build</span>
+      <span class="ss-arrow">&rarr;</span>
+      <span class="ss-node active">Image</span>
+      <span class="ss-arrow">&rarr;</span>
+      <span class="ss-node done">Registry</span>
+      <span class="ss-arrow">&rarr;</span>
+      <span class="ss-node done">Deploy</span>
+    </div>
+    <p style="max-width:620px; color:#a0a0c0; font-size:.56em; line-height:1.5; margin-top:1em;">
+      From local development to production infrastructure &mdash; packaging applications into portable, reproducible containers
+    </p>
+    <div class="meta" style="margin-top:1.4em;">
+      Build &nbsp;&middot;&nbsp; Ship &nbsp;&middot;&nbsp; Run &nbsp;&middot;&nbsp; Scale
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 02 — AGENDA ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">01</span>
+    <h2>Topics</h2>
+  </div>
+  <div class="cols cols-2">
+    <div>
+      <div class="card amber">
+        <h3 class="a">Container Fundamentals</h3>
+        <ul>
+          <li>The problem containers solve</li>
+          <li>Containers vs virtual machines</li>
+          <li>Docker architecture</li>
+          <li>Writing Dockerfiles</li>
+        </ul>
+      </div>
+      <div class="card green" style="margin-top:0.5em;">
+        <h3 class="g">Building &amp; Running</h3>
+        <ul>
+          <li>Multi-stage builds</li>
+          <li>Docker commands cheat sheet</li>
+          <li>Docker Compose</li>
+          <li>Networking &amp; volumes</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div class="card purple">
+        <h3 class="p">Registries &amp; Security</h3>
+        <ul>
+          <li>Container registries</li>
+          <li>Pushing &amp; pulling images</li>
+          <li>Security best practices</li>
+          <li>Common pitfalls &amp; debugging</li>
+        </ul>
+      </div>
+      <div class="card blue" style="margin-top:0.5em;">
+        <h3 class="b">Orchestration &amp; Deployment</h3>
+        <ul>
+          <li>Container orchestration intro</li>
+          <li>Kubernetes basics</li>
+          <li>Deploying to cloud providers</li>
+          <li>Free &amp; cheap hosting options</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 03 — THE PROBLEM ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">02</span>
+    <h2>The Problem Containers Solve</h2>
+  </div>
+  <div class="cols cols-2">
+    <div>
+      <p>Every developer has heard <span class="r">"But it works on my machine!"</span> &mdash; the classic symptom of environment inconsistency between development, staging, and production.</p>
+      <div class="card red" style="margin-top:0.5em;">
+        <h3 class="r">Dependency Hell</h3>
+        <ul>
+          <li>App needs Python 3.11, server has 3.8</li>
+          <li>Library A requires OpenSSL 1.1, Library B needs 3.0</li>
+          <li>Dev uses macOS, CI runs Ubuntu, prod is Amazon Linux</li>
+          <li>Global package installs conflict across projects</li>
+          <li>"Just install these 47 things first..."</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div class="card amber">
+        <h3 class="a">Without Containers</h3>
+        <ul>
+          <li>Manual server provisioning (hours/days)</li>
+          <li>Snowflake servers &mdash; no two are alike</li>
+          <li>Configuration drift over time</li>
+          <li>Painful rollbacks</li>
+          <li>"Don't touch that server, nobody knows how it works"</li>
+        </ul>
+      </div>
+      <div class="card green" style="margin-top:0.5em;">
+        <h3 class="g">With Containers</h3>
+        <ul>
+          <li>Identical environment everywhere</li>
+          <li>Dependencies bundled with the app</li>
+          <li>Spin up in seconds, not hours</li>
+          <li>Version-controlled infrastructure</li>
+          <li>Instant rollback &mdash; just run the old image</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 04 — WHAT IS A CONTAINER ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">03</span>
+    <h2>What Is a Container?</h2>
+  </div>
+  <p>A container is a <span class="a">lightweight, isolated process</span> that shares the host OS kernel but has its own filesystem, network, and process space.</p>
+  <div class="cols cols-2">
+    <div>
+      <svg class="diagram" viewBox="0 0 340 260" width="340" height="260">
+        <!-- VM side -->
+        <text x="85" y="18" text-anchor="middle" fill="#f87171" font-family="DM Sans" font-size="13" font-weight="600">Virtual Machines</text>
+        <rect x="5" y="220" width="160" height="30" rx="4" fill="#1a1a2a" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="85" y="240" text-anchor="middle" fill="#a78bfa" font-family="JetBrains Mono" font-size="10">Infrastructure</text>
+        <rect x="5" y="185" width="160" height="30" rx="4" fill="#1a1a2a" stroke="#60a5fa" stroke-width="1.5"/>
+        <text x="85" y="205" text-anchor="middle" fill="#60a5fa" font-family="JetBrains Mono" font-size="10">Host OS</text>
+        <rect x="5" y="150" width="160" height="30" rx="4" fill="#1a1a2a" stroke="#f5a623" stroke-width="1.5"/>
+        <text x="85" y="170" text-anchor="middle" fill="#f5a623" font-family="JetBrains Mono" font-size="10">Hypervisor</text>
+        <!-- VM boxes -->
+        <rect x="8" y="28" width="48" height="115" rx="4" fill="#181824" stroke="#2a2a3a" stroke-width="1"/>
+        <text x="32" y="45" text-anchor="middle" fill="#ccc" font-family="JetBrains Mono" font-size="8">App A</text>
+        <rect x="12" y="52" width="40" height="16" rx="2" fill="#0e0e18" stroke="#2a2a3a"/>
+        <text x="32" y="63" text-anchor="middle" fill="#888" font-family="JetBrains Mono" font-size="7">Bins/Libs</text>
+        <rect x="12" y="72" width="40" height="16" rx="2" fill="#0e0e18" stroke="#f87171" stroke-width="0.8"/>
+        <text x="32" y="83" text-anchor="middle" fill="#f87171" font-family="JetBrains Mono" font-size="7">Guest OS</text>
+        <rect x="60" y="28" width="48" height="115" rx="4" fill="#181824" stroke="#2a2a3a" stroke-width="1"/>
+        <text x="84" y="45" text-anchor="middle" fill="#ccc" font-family="JetBrains Mono" font-size="8">App B</text>
+        <rect x="64" y="52" width="40" height="16" rx="2" fill="#0e0e18" stroke="#2a2a3a"/>
+        <text x="84" y="63" text-anchor="middle" fill="#888" font-family="JetBrains Mono" font-size="7">Bins/Libs</text>
+        <rect x="64" y="72" width="40" height="16" rx="2" fill="#0e0e18" stroke="#f87171" stroke-width="0.8"/>
+        <text x="84" y="83" text-anchor="middle" fill="#f87171" font-family="JetBrains Mono" font-size="7">Guest OS</text>
+        <rect x="112" y="28" width="48" height="115" rx="4" fill="#181824" stroke="#2a2a3a" stroke-width="1"/>
+        <text x="136" y="45" text-anchor="middle" fill="#ccc" font-family="JetBrains Mono" font-size="8">App C</text>
+        <rect x="116" y="52" width="40" height="16" rx="2" fill="#0e0e18" stroke="#2a2a3a"/>
+        <text x="136" y="63" text-anchor="middle" fill="#888" font-family="JetBrains Mono" font-size="7">Bins/Libs</text>
+        <rect x="116" y="72" width="40" height="16" rx="2" fill="#0e0e18" stroke="#f87171" stroke-width="0.8"/>
+        <text x="136" y="83" text-anchor="middle" fill="#f87171" font-family="JetBrains Mono" font-size="7">Guest OS</text>
+        <!-- Container side -->
+        <text x="255" y="18" text-anchor="middle" fill="#4ecb8d" font-family="DM Sans" font-size="13" font-weight="600">Containers</text>
+        <rect x="175" y="220" width="160" height="30" rx="4" fill="#1a2a1a" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="255" y="240" text-anchor="middle" fill="#a78bfa" font-family="JetBrains Mono" font-size="10">Infrastructure</text>
+        <rect x="175" y="185" width="160" height="30" rx="4" fill="#1a2a1a" stroke="#60a5fa" stroke-width="1.5"/>
+        <text x="255" y="205" text-anchor="middle" fill="#60a5fa" font-family="JetBrains Mono" font-size="10">Host OS</text>
+        <rect x="175" y="150" width="160" height="30" rx="4" fill="#1a2a1a" stroke="#4ecb8d" stroke-width="1.5"/>
+        <text x="255" y="170" text-anchor="middle" fill="#4ecb8d" font-family="JetBrains Mono" font-size="10">Container Engine</text>
+        <!-- Container boxes (shorter - no Guest OS) -->
+        <rect x="178" y="68" width="48" height="75" rx="4" fill="#181824" stroke="#4ecb8d" stroke-width="1"/>
+        <text x="202" y="85" text-anchor="middle" fill="#ccc" font-family="JetBrains Mono" font-size="8">App A</text>
+        <rect x="182" y="92" width="40" height="16" rx="2" fill="#0e0e18" stroke="#2a2a3a"/>
+        <text x="202" y="103" text-anchor="middle" fill="#888" font-family="JetBrains Mono" font-size="7">Bins/Libs</text>
+        <rect x="230" y="68" width="48" height="75" rx="4" fill="#181824" stroke="#4ecb8d" stroke-width="1"/>
+        <text x="254" y="85" text-anchor="middle" fill="#ccc" font-family="JetBrains Mono" font-size="8">App B</text>
+        <rect x="234" y="92" width="40" height="16" rx="2" fill="#0e0e18" stroke="#2a2a3a"/>
+        <text x="254" y="103" text-anchor="middle" fill="#888" font-family="JetBrains Mono" font-size="7">Bins/Libs</text>
+        <rect x="282" y="68" width="48" height="75" rx="4" fill="#181824" stroke="#4ecb8d" stroke-width="1"/>
+        <text x="306" y="85" text-anchor="middle" fill="#ccc" font-family="JetBrains Mono" font-size="8">App C</text>
+        <rect x="286" y="92" width="40" height="16" rx="2" fill="#0e0e18" stroke="#2a2a3a"/>
+        <text x="306" y="103" text-anchor="middle" fill="#888" font-family="JetBrains Mono" font-size="7">Bins/Libs</text>
+      </svg>
+    </div>
+    <div>
+      <div class="card amber">
+        <h3 class="a">Linux Kernel Features</h3>
+        <ul>
+          <li><span class="b">Namespaces</span> &mdash; isolate PID, network, mount, user, IPC</li>
+          <li><span class="g">cgroups</span> &mdash; limit CPU, memory, disk I/O</li>
+          <li><span class="p">Union filesystems</span> &mdash; layered, copy-on-write storage</li>
+        </ul>
+      </div>
+      <div class="card green" style="margin-top:0.4em;">
+        <h3 class="g">Key Differences</h3>
+        <ul>
+          <li>VMs: full OS per instance (~GB), boot in minutes</li>
+          <li>Containers: shared kernel (~MB), start in milliseconds</li>
+          <li>Containers are <em>not</em> lightweight VMs &mdash; they're isolated processes</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 05 — DOCKER ARCHITECTURE ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">04</span>
+    <h2>Docker Architecture</h2>
+  </div>
+  <svg class="diagram" viewBox="0 0 900 220" width="900" height="220">
+    <!-- Client -->
+    <rect x="10" y="60" width="160" height="100" rx="6" fill="#181824" stroke="#f5a623" stroke-width="1.5"/>
+    <text x="90" y="85" text-anchor="middle" fill="#f5a623" font-family="Playfair Display" font-size="14" font-weight="700">Docker CLI</text>
+    <text x="90" y="105" text-anchor="middle" fill="#8888a8" font-family="JetBrains Mono" font-size="9">docker build</text>
+    <text x="90" y="118" text-anchor="middle" fill="#8888a8" font-family="JetBrains Mono" font-size="9">docker run</text>
+    <text x="90" y="131" text-anchor="middle" fill="#8888a8" font-family="JetBrains Mono" font-size="9">docker push</text>
+    <!-- Arrow -->
+    <line x1="175" y1="110" x2="230" y2="110" stroke="#f5a623" stroke-width="1.5" marker-end="url(#arrowAmber)"/>
+    <text x="203" y="100" text-anchor="middle" fill="#8888a8" font-family="JetBrains Mono" font-size="8">REST API</text>
+    <!-- Daemon -->
+    <rect x="235" y="20" width="280" height="180" rx="6" fill="#181824" stroke="#4ecb8d" stroke-width="1.5"/>
+    <text x="375" y="42" text-anchor="middle" fill="#4ecb8d" font-family="Playfair Display" font-size="14" font-weight="700">Docker Daemon (dockerd)</text>
+    <rect x="250" y="55" width="110" height="35" rx="4" fill="#0e0e18" stroke="#60a5fa" stroke-width="1"/>
+    <text x="305" y="77" text-anchor="middle" fill="#60a5fa" font-family="JetBrains Mono" font-size="10">Images</text>
+    <rect x="250" y="100" width="110" height="35" rx="4" fill="#0e0e18" stroke="#a78bfa" stroke-width="1"/>
+    <text x="305" y="122" text-anchor="middle" fill="#a78bfa" font-family="JetBrains Mono" font-size="10">Containers</text>
+    <rect x="250" y="145" width="110" height="35" rx="4" fill="#0e0e18" stroke="#f87171" stroke-width="1"/>
+    <text x="305" y="167" text-anchor="middle" fill="#f87171" font-family="JetBrains Mono" font-size="10">Networks</text>
+    <rect x="390" y="55" width="110" height="35" rx="4" fill="#0e0e18" stroke="#f5a623" stroke-width="1"/>
+    <text x="445" y="77" text-anchor="middle" fill="#f5a623" font-family="JetBrains Mono" font-size="10">Volumes</text>
+    <rect x="390" y="100" width="110" height="55" rx="4" fill="#0e0e18" stroke="#4ecb8d" stroke-width="1"/>
+    <text x="445" y="122" text-anchor="middle" fill="#4ecb8d" font-family="JetBrains Mono" font-size="9">containerd</text>
+    <text x="445" y="140" text-anchor="middle" fill="#8888a8" font-family="JetBrains Mono" font-size="8">+ runc</text>
+    <!-- Arrow to Registry -->
+    <line x1="520" y1="110" x2="580" y2="110" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrowPurple)"/>
+    <text x="550" y="100" text-anchor="middle" fill="#8888a8" font-family="JetBrains Mono" font-size="8">pull/push</text>
+    <!-- Registry -->
+    <rect x="585" y="50" width="170" height="120" rx="6" fill="#181824" stroke="#a78bfa" stroke-width="1.5"/>
+    <text x="670" y="75" text-anchor="middle" fill="#a78bfa" font-family="Playfair Display" font-size="14" font-weight="700">Registry</text>
+    <text x="670" y="100" text-anchor="middle" fill="#8888a8" font-family="JetBrains Mono" font-size="9">Docker Hub</text>
+    <text x="670" y="115" text-anchor="middle" fill="#8888a8" font-family="JetBrains Mono" font-size="9">GitHub GHCR</text>
+    <text x="670" y="130" text-anchor="middle" fill="#8888a8" font-family="JetBrains Mono" font-size="9">AWS ECR</text>
+    <text x="670" y="145" text-anchor="middle" fill="#8888a8" font-family="JetBrains Mono" font-size="9">Private Registry</text>
+    <!-- Arrow markers -->
+    <defs>
+      <marker id="arrowAmber" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#f5a623"/></marker>
+      <marker id="arrowPurple" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#a78bfa"/></marker>
+    </defs>
+  </svg>
+  <div class="cols cols-3" style="margin-top:.3em;">
+    <div class="card amber">
+      <h3 class="a">Image</h3>
+      <p>Read-only template with app code, runtime, libraries. Built in layers from a Dockerfile.</p>
+    </div>
+    <div class="card green">
+      <h3 class="g">Container</h3>
+      <p>Running instance of an image. Writable layer on top. Isolated process with its own filesystem.</p>
+    </div>
+    <div class="card purple">
+      <h3 class="p">Registry</h3>
+      <p>Repository for storing and distributing images. Like GitHub but for container images.</p>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 06 — WRITING A DOCKERFILE ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">05</span>
+    <h2>Writing a Dockerfile</h2>
+  </div>
+  <div class="cols cols-6040">
+    <div>
+      <pre><code class="language-dockerfile"># Node.js Express API Dockerfile
+FROM node:20-alpine
+
+# Create app directory
+WORKDIR /app
+
+# Install dependencies first (better caching)
+COPY package*.json ./
+RUN npm ci --only=production
+
+# Copy application source
+COPY src/ ./src/
+COPY tsconfig.json ./
+
+# Build TypeScript
+RUN npm run build
+
+# Expose the port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s \
+  CMD wget -qO- http://localhost:3000/health || exit 1
+
+# Run as non-root user
+USER node
+
+# Start the app
+CMD ["node", "dist/server.js"]</code></pre>
+    </div>
+    <div>
+      <div class="card amber">
+        <h3 class="a">Key Instructions</h3>
+        <ul>
+          <li><code>FROM</code> &mdash; base image to build upon</li>
+          <li><code>WORKDIR</code> &mdash; set working directory</li>
+          <li><code>COPY</code> &mdash; copy files into image</li>
+          <li><code>RUN</code> &mdash; execute build commands</li>
+          <li><code>EXPOSE</code> &mdash; document the port</li>
+          <li><code>CMD</code> &mdash; default run command</li>
+        </ul>
+      </div>
+      <div class="card green" style="margin-top:.4em;">
+        <h3 class="g">Layer Caching Tips</h3>
+        <ul>
+          <li>Copy <code>package.json</code> before source code</li>
+          <li>Dependencies cached if lockfile unchanged</li>
+          <li>Order instructions from least to most changed</li>
+          <li>Each instruction creates a new layer</li>
+        </ul>
+      </div>
+      <div class="card purple" style="margin-top:.4em;">
+        <h3 class="p">.dockerignore</h3>
+        <p>Like .gitignore &mdash; exclude <code>node_modules</code>, <code>.git</code>, <code>.env</code>, test files from the build context.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 07 — MULTI-STAGE BUILDS ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">06</span>
+    <h2>Multi-Stage Builds</h2>
+  </div>
+  <p>Use multiple <code>FROM</code> statements to <span class="a">separate build-time and runtime dependencies</span>, dramatically reducing final image size.</p>
+  <div class="cols cols-6040">
+    <div>
+      <pre><code class="language-dockerfile"># ── Stage 1: Build ──
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+RUN npm prune --production
+
+# ── Stage 2: Production ──
+FROM node:20-alpine AS production
+WORKDIR /app
+
+# Only copy what we need
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./
+
+USER node
+EXPOSE 3000
+CMD ["node", "dist/server.js"]</code></pre>
+    </div>
+    <div>
+      <div class="card red">
+        <h3 class="r">Single-Stage</h3>
+        <p>~850 MB &mdash; includes TypeScript compiler, dev dependencies, source files, build tools</p>
+      </div>
+      <div class="card green" style="margin-top:.4em;">
+        <h3 class="g">Multi-Stage</h3>
+        <p>~150 MB &mdash; only production node_modules and compiled JS. No compiler, no dev deps.</p>
+      </div>
+      <div class="card amber" style="margin-top:.4em;">
+        <h3 class="a">Common Patterns</h3>
+        <ul>
+          <li>Go: build static binary, copy to <code>scratch</code></li>
+          <li>Rust: build binary, copy to <code>debian-slim</code></li>
+          <li>React: build with Node, serve with <code>nginx:alpine</code></li>
+          <li>Java: build with Maven, run with JRE-only image</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 08 — DOCKER COMMANDS ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">07</span>
+    <h2>Docker Commands Cheat Sheet</h2>
+  </div>
+  <table>
+    <thead>
+      <tr><th>Command</th><th>Description</th><th>Example</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>docker build</code></td><td>Build image from Dockerfile</td><td><code>docker build -t myapp:1.0 .</code></td></tr>
+      <tr><td><code>docker run</code></td><td>Create &amp; start container</td><td><code>docker run -d -p 3000:3000 myapp:1.0</code></td></tr>
+      <tr><td><code>docker ps</code></td><td>List running containers</td><td><code>docker ps -a</code> (include stopped)</td></tr>
+      <tr><td><code>docker logs</code></td><td>View container output</td><td><code>docker logs -f --tail 100 myapp</code></td></tr>
+      <tr><td><code>docker exec</code></td><td>Run command in container</td><td><code>docker exec -it myapp sh</code></td></tr>
+      <tr><td><code>docker stop</code></td><td>Gracefully stop container</td><td><code>docker stop myapp</code></td></tr>
+      <tr><td><code>docker rm</code></td><td>Remove stopped container</td><td><code>docker rm myapp</code></td></tr>
+      <tr><td><code>docker images</code></td><td>List local images</td><td><code>docker images --filter dangling=true</code></td></tr>
+      <tr><td><code>docker system prune</code></td><td>Clean up unused resources</td><td><code>docker system prune -af</code></td></tr>
+    </tbody>
+  </table>
+  <div class="card amber" style="margin-top:.4em;">
+    <h3 class="a">Useful Flags for <code>docker run</code></h3>
+    <p><code>-d</code> detached &nbsp; <code>-p 8080:3000</code> port map &nbsp; <code>-v ./data:/data</code> volume &nbsp; <code>--name myapp</code> name &nbsp; <code>--rm</code> auto-remove &nbsp; <code>-e KEY=val</code> env var &nbsp; <code>--network mynet</code> network</p>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 09 — DOCKER COMPOSE ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">08</span>
+    <h2>Docker Compose</h2>
+  </div>
+  <p>Define and run <span class="a">multi-container applications</span> with a single YAML file. One command to start everything.</p>
+  <div class="cols cols-6040">
+    <div>
+      <pre><code class="language-yaml"># docker-compose.yml
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgres://user:pass@db:5432/myapp
+      - REDIS_URL=redis://cache:6379
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_started
+    volumes:
+      - ./src:/app/src   # dev hot-reload
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: myapp
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  cache:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+volumes:
+  pgdata:</code></pre>
+    </div>
+    <div>
+      <div class="card green">
+        <h3 class="g">Key Commands</h3>
+        <ul>
+          <li><code>docker compose up -d</code> &mdash; start all services</li>
+          <li><code>docker compose down</code> &mdash; stop and remove</li>
+          <li><code>docker compose logs -f app</code> &mdash; follow logs</li>
+          <li><code>docker compose build</code> &mdash; rebuild images</li>
+          <li><code>docker compose ps</code> &mdash; service status</li>
+        </ul>
+      </div>
+      <div class="card purple" style="margin-top:.4em;">
+        <h3 class="p">Features</h3>
+        <ul>
+          <li>Service discovery via DNS names</li>
+          <li>Health checks &amp; startup ordering</li>
+          <li>Named volumes for persistence</li>
+          <li>Environment variable files (<code>.env</code>)</li>
+          <li>Override files for dev/prod configs</li>
+        </ul>
+      </div>
+      <div class="card amber" style="margin-top:.4em;">
+        <h3 class="a">Pro Tip</h3>
+        <p>Use <code>docker-compose.override.yml</code> for dev settings (hot-reload, debug ports) that don't go to production.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 10 — CONTAINER REGISTRIES ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">09</span>
+    <h2>Container Registries</h2>
+  </div>
+  <p>A <span class="a">container registry</span> stores and distributes Docker images. Think of it as npm/PyPI but for container images.</p>
+  <div class="cols cols-2">
+    <div>
+      <table>
+        <thead>
+          <tr><th>Registry</th><th>Free Tier</th><th>Best For</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="b">Docker Hub</span></td><td>1 private repo, unlimited public</td><td>Open source, public images</td></tr>
+          <tr><td><span class="p">GitHub GHCR</span></td><td>500 MB free storage</td><td>GitHub-based workflows</td></tr>
+          <tr><td><span class="a">AWS ECR</span></td><td>500 MB/month (free tier)</td><td>AWS deployments</td></tr>
+          <tr><td><span class="g">Google AR</span></td><td>500 MB free w/ Cloud Run</td><td>GCP deployments</td></tr>
+          <tr><td><span class="r">Azure ACR</span></td><td>Basic tier ~$5/mo</td><td>Azure deployments</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <div class="card amber">
+        <h3 class="a">Image Naming Convention</h3>
+        <pre><code class="language-bash"># Format: registry/namespace/image:tag
+docker.io/library/node:20-alpine
+ghcr.io/myorg/myapp:v1.2.3
+123456789.dkr.ecr.us-east-1.amazonaws.com/myapp:latest</code></pre>
+      </div>
+      <div class="card green" style="margin-top:.4em;">
+        <h3 class="g">Tag Strategy</h3>
+        <ul>
+          <li><code>latest</code> &mdash; avoid in production (mutable!)</li>
+          <li><code>v1.2.3</code> &mdash; semantic version (immutable)</li>
+          <li><code>sha-a1b2c3d</code> &mdash; git commit hash</li>
+          <li><code>main-20260324</code> &mdash; branch + date</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 11 — PUSHING & PULLING ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">10</span>
+    <h2>Pushing &amp; Pulling Images</h2>
+  </div>
+  <div class="cols cols-2">
+    <div>
+      <div class="card amber">
+        <h3 class="a">Manual Workflow</h3>
+      </div>
+      <pre><code class="language-bash"># 1. Build the image
+docker build -t myapp:v1.0.0 .
+
+# 2. Tag for your registry
+docker tag myapp:v1.0.0 \
+  ghcr.io/myorg/myapp:v1.0.0
+
+# 3. Authenticate
+echo $GITHUB_TOKEN | docker login \
+  ghcr.io -u USERNAME --password-stdin
+
+# 4. Push to registry
+docker push ghcr.io/myorg/myapp:v1.0.0
+
+# 5. Pull on another machine
+docker pull ghcr.io/myorg/myapp:v1.0.0
+docker run -d -p 3000:3000 \
+  ghcr.io/myorg/myapp:v1.0.0</code></pre>
+    </div>
+    <div>
+      <div class="card green">
+        <h3 class="g">CI/CD Automation (GitHub Actions)</h3>
+      </div>
+      <pre><code class="language-yaml"># .github/workflows/docker.yml
+name: Build & Push
+on:
+  push:
+    tags: ['v*']
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v5
+        with:
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+            ghcr.io/${{ github.repository }}:latest</code></pre>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 12 — DOCKER NETWORKING ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">11</span>
+    <h2>Docker Networking</h2>
+  </div>
+  <div class="cols cols-2">
+    <div>
+      <table>
+        <thead>
+          <tr><th>Driver</th><th>Use Case</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="a">bridge</span></td><td>Default. Containers on same host communicate via virtual bridge</td></tr>
+          <tr><td><span class="g">host</span></td><td>Container shares host network stack. No port mapping needed</td></tr>
+          <tr><td><span class="p">overlay</span></td><td>Multi-host networking for Docker Swarm / orchestration</td></tr>
+          <tr><td><span class="b">none</span></td><td>No networking. Complete isolation</td></tr>
+          <tr><td><span class="r">macvlan</span></td><td>Container gets its own MAC address on the physical network</td></tr>
+        </tbody>
+      </table>
+      <div class="card green" style="margin-top:.4em;">
+        <h3 class="g">DNS Service Discovery</h3>
+        <p>On user-defined networks, containers can reach each other by <span class="a">service name</span>. No need for IP addresses.</p>
+      </div>
+    </div>
+    <div>
+      <pre><code class="language-bash"># Create a custom network
+docker network create mynet
+
+# Run containers on the same network
+docker run -d --name api \
+  --network mynet myapp:1.0
+docker run -d --name db \
+  --network mynet postgres:16
+
+# 'api' container can connect to:
+#   postgres://db:5432/mydb
+# Docker resolves 'db' to the container IP</code></pre>
+      <svg class="diagram" viewBox="0 0 380 130" width="380" height="130">
+        <rect x="10" y="10" width="360" height="110" rx="6" fill="none" stroke="#4ecb8d" stroke-width="1" stroke-dasharray="4"/>
+        <text x="190" y="28" text-anchor="middle" fill="#4ecb8d" font-family="JetBrains Mono" font-size="10">mynet (bridge)</text>
+        <rect x="30" y="45" width="90" height="55" rx="4" fill="#181824" stroke="#f5a623" stroke-width="1"/>
+        <text x="75" y="68" text-anchor="middle" fill="#f5a623" font-family="JetBrains Mono" font-size="10">api</text>
+        <text x="75" y="85" text-anchor="middle" fill="#8888a8" font-family="JetBrains Mono" font-size="8">:3000</text>
+        <line x1="125" y1="72" x2="165" y2="72" stroke="#f5a623" stroke-width="1.2" marker-end="url(#arrowAmber)"/>
+        <rect x="170" y="45" width="90" height="55" rx="4" fill="#181824" stroke="#a78bfa" stroke-width="1"/>
+        <text x="215" y="68" text-anchor="middle" fill="#a78bfa" font-family="JetBrains Mono" font-size="10">db</text>
+        <text x="215" y="85" text-anchor="middle" fill="#8888a8" font-family="JetBrains Mono" font-size="8">:5432</text>
+        <line x1="125" y1="80" x2="280" y2="80" stroke="#f87171" stroke-width="1.2" stroke-dasharray="3" marker-end="url(#arrowRed)"/>
+        <rect x="280" y="45" width="78" height="55" rx="4" fill="#181824" stroke="#f87171" stroke-width="1"/>
+        <text x="319" y="68" text-anchor="middle" fill="#f87171" font-family="JetBrains Mono" font-size="10">cache</text>
+        <text x="319" y="85" text-anchor="middle" fill="#8888a8" font-family="JetBrains Mono" font-size="8">:6379</text>
+        <defs>
+          <marker id="arrowRed" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#f87171"/></marker>
+        </defs>
+      </svg>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 13 — VOLUMES & DATA ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">12</span>
+    <h2>Volumes &amp; Persistent Data</h2>
+  </div>
+  <p>Containers are <span class="r">ephemeral</span> &mdash; data inside is lost when the container is removed. Volumes solve this.</p>
+  <div class="cols cols-3">
+    <div class="card amber">
+      <h3 class="a">Named Volumes</h3>
+      <ul>
+        <li>Managed by Docker</li>
+        <li>Stored in <code>/var/lib/docker/volumes/</code></li>
+        <li>Best for databases &amp; persistent state</li>
+        <li>Survive container removal</li>
+      </ul>
+      <pre><code class="language-bash">docker volume create pgdata
+docker run -v pgdata:/var/lib/postgresql/data postgres:16</code></pre>
+    </div>
+    <div class="card green">
+      <h3 class="g">Bind Mounts</h3>
+      <ul>
+        <li>Map host directory into container</li>
+        <li>Full path on host system</li>
+        <li>Great for development (hot reload)</li>
+        <li>Host file changes visible instantly</li>
+      </ul>
+      <pre><code class="language-bash">docker run \
+  -v $(pwd)/src:/app/src \
+  -v $(pwd)/config:/app/config:ro \
+  myapp:dev</code></pre>
+    </div>
+    <div class="card purple">
+      <h3 class="p">tmpfs Mounts</h3>
+      <ul>
+        <li>Stored in host memory only</li>
+        <li>Never written to disk</li>
+        <li>Good for secrets, temp data</li>
+        <li>Lost when container stops</li>
+      </ul>
+      <pre><code class="language-bash">docker run \
+  --tmpfs /tmp:rw,size=64m \
+  --tmpfs /run/secrets \
+  myapp:1.0</code></pre>
+    </div>
+  </div>
+  <div class="card red" style="margin-top:.3em;">
+    <h3 class="r">Common Mistake</h3>
+    <p>Never store database data inside the container without a volume. A <code>docker rm</code> will destroy all your data permanently.</p>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 14 — SECURITY ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">13</span>
+    <h2>Container Security Best Practices</h2>
+  </div>
+  <div class="cols cols-2">
+    <div>
+      <div class="card red">
+        <h3 class="r">Don't Do This</h3>
+        <ul>
+          <li>Run as <code>root</code> inside containers</li>
+          <li>Use <code>latest</code> tag in production</li>
+          <li>Bake secrets into images</li>
+          <li>Use full OS base images (ubuntu, debian)</li>
+          <li>Expose Docker socket to containers</li>
+          <li>Skip image scanning</li>
+          <li>Run with <code>--privileged</code> flag</li>
+        </ul>
+      </div>
+      <div class="card green" style="margin-top:.4em;">
+        <h3 class="g">Do This Instead</h3>
+        <ul>
+          <li>Use <code>USER nonroot</code> in Dockerfile</li>
+          <li>Pin image versions with SHA digests</li>
+          <li>Pass secrets via env vars or Docker secrets</li>
+          <li>Use <code>alpine</code> or <code>distroless</code> base images</li>
+          <li>Scan with Trivy, Snyk, or Grype</li>
+          <li>Set <code>read_only: true</code> where possible</li>
+          <li>Drop all capabilities, add only needed ones</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <pre><code class="language-dockerfile"># Secure Dockerfile example
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+FROM gcr.io/distroless/nodejs20-debian12
+WORKDIR /app
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+
+# No shell, no package manager, no root
+USER nonroot:nonroot
+EXPOSE 3000
+CMD ["dist/server.js"]</code></pre>
+      <pre><code class="language-bash"># Scan image for vulnerabilities
+trivy image myapp:v1.0.0
+
+# Output:
+# Total: 2 (HIGH: 1, CRITICAL: 1)
+# ┌──────────┬────────────┬──────────┐
+# │ Library  │ Vuln ID    │ Severity │
+# ├──────────┼────────────┼──────────┤
+# │ openssl  │ CVE-2024-… │ CRITICAL │
+# │ curl     │ CVE-2024-… │ HIGH     │
+# └──────────┴────────────┴──────────┘</code></pre>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 15 — ORCHESTRATION INTRO ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">14</span>
+    <h2>Container Orchestration &mdash; Why You Need It</h2>
+  </div>
+  <p>Running one container on one server is simple. Running <span class="a">dozens across multiple servers</span> with zero downtime requires orchestration.</p>
+  <div class="cols cols-2">
+    <div>
+      <div class="card amber">
+        <h3 class="a">What Orchestrators Handle</h3>
+        <ul>
+          <li><span class="g">Scheduling</span> &mdash; place containers across nodes</li>
+          <li><span class="b">Scaling</span> &mdash; add/remove replicas automatically</li>
+          <li><span class="p">Health checks</span> &mdash; restart failed containers</li>
+          <li><span class="a">Rolling updates</span> &mdash; zero-downtime deployments</li>
+          <li><span class="r">Service discovery</span> &mdash; route traffic to healthy instances</li>
+          <li>Load balancing, secrets, config management</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <table>
+        <thead>
+          <tr><th>Platform</th><th>Complexity</th><th>Best For</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="b">Kubernetes</span></td><td>High</td><td>Large-scale, multi-cloud, full control</td></tr>
+          <tr><td><span class="g">Docker Swarm</span></td><td>Low</td><td>Small teams, simple orchestration</td></tr>
+          <tr><td><span class="a">AWS ECS</span></td><td>Medium</td><td>AWS-native, Fargate serverless</td></tr>
+          <tr><td><span class="p">Nomad</span></td><td>Medium</td><td>Multi-workload (containers + VMs + batch)</td></tr>
+          <tr><td><span class="r">Cloud Run</span></td><td>Very Low</td><td>Serverless containers, scale to zero</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="ss-row" style="justify-content:center; margin-top:.5em;">
+    <span class="ss-node">1 container</span>
+    <span class="ss-arrow">&rarr;</span>
+    <span class="ss-node">Docker Compose</span>
+    <span class="ss-arrow">&rarr;</span>
+    <span class="ss-node active">Swarm / ECS</span>
+    <span class="ss-arrow">&rarr;</span>
+    <span class="ss-node done">Kubernetes</span>
+    <span class="ss-label">complexity &amp; scale &rarr;</span>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 16 — KUBERNETES BASICS ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">15</span>
+    <h2>Kubernetes Basics</h2>
+  </div>
+  <div class="cols cols-6040">
+    <div>
+      <svg class="diagram" viewBox="0 0 420 280" width="420" height="280">
+        <!-- Cluster -->
+        <rect x="5" y="5" width="410" height="270" rx="6" fill="none" stroke="#60a5fa" stroke-width="1.5" stroke-dasharray="4"/>
+        <text x="210" y="24" text-anchor="middle" fill="#60a5fa" font-family="Playfair Display" font-size="12" font-weight="700">Kubernetes Cluster</text>
+        <!-- Ingress -->
+        <rect x="20" y="35" width="100" height="35" rx="4" fill="#181824" stroke="#f5a623" stroke-width="1.2"/>
+        <text x="70" y="57" text-anchor="middle" fill="#f5a623" font-family="JetBrains Mono" font-size="10">Ingress</text>
+        <line x1="125" y1="52" x2="160" y2="52" stroke="#f5a623" stroke-width="1" marker-end="url(#arrowAmber)"/>
+        <!-- Service -->
+        <rect x="165" y="35" width="100" height="35" rx="4" fill="#181824" stroke="#4ecb8d" stroke-width="1.2"/>
+        <text x="215" y="57" text-anchor="middle" fill="#4ecb8d" font-family="JetBrains Mono" font-size="10">Service</text>
+        <!-- Deployment -->
+        <rect x="15" y="90" width="395" height="80" rx="4" fill="none" stroke="#a78bfa" stroke-width="1" stroke-dasharray="3"/>
+        <text x="212" y="106" text-anchor="middle" fill="#a78bfa" font-family="JetBrains Mono" font-size="9">Deployment (replicas: 3)</text>
+        <!-- Pods -->
+        <rect x="30" y="115" width="110" height="42" rx="4" fill="#181824" stroke="#f87171" stroke-width="1"/>
+        <text x="85" y="132" text-anchor="middle" fill="#f87171" font-family="JetBrains Mono" font-size="9">Pod</text>
+        <text x="85" y="148" text-anchor="middle" fill="#8888a8" font-family="JetBrains Mono" font-size="7">container: myapp</text>
+        <rect x="155" y="115" width="110" height="42" rx="4" fill="#181824" stroke="#f87171" stroke-width="1"/>
+        <text x="210" y="132" text-anchor="middle" fill="#f87171" font-family="JetBrains Mono" font-size="9">Pod</text>
+        <text x="210" y="148" text-anchor="middle" fill="#8888a8" font-family="JetBrains Mono" font-size="7">container: myapp</text>
+        <rect x="280" y="115" width="110" height="42" rx="4" fill="#181824" stroke="#f87171" stroke-width="1"/>
+        <text x="335" y="132" text-anchor="middle" fill="#f87171" font-family="JetBrains Mono" font-size="9">Pod</text>
+        <text x="335" y="148" text-anchor="middle" fill="#8888a8" font-family="JetBrains Mono" font-size="7">container: myapp</text>
+        <!-- Lines from service to pods -->
+        <line x1="215" y1="72" x2="85" y2="112" stroke="#4ecb8d" stroke-width="0.8"/>
+        <line x1="215" y1="72" x2="210" y2="112" stroke="#4ecb8d" stroke-width="0.8"/>
+        <line x1="215" y1="72" x2="335" y2="112" stroke="#4ecb8d" stroke-width="0.8"/>
+        <!-- ConfigMap & Secret -->
+        <rect x="20" y="190" width="120" height="35" rx="4" fill="#181824" stroke="#f5a623" stroke-width="1"/>
+        <text x="80" y="212" text-anchor="middle" fill="#f5a623" font-family="JetBrains Mono" font-size="9">ConfigMap</text>
+        <rect x="155" y="190" width="120" height="35" rx="4" fill="#181824" stroke="#f87171" stroke-width="1"/>
+        <text x="215" y="212" text-anchor="middle" fill="#f87171" font-family="JetBrains Mono" font-size="9">Secret</text>
+        <rect x="290" y="190" width="120" height="35" rx="4" fill="#181824" stroke="#a78bfa" stroke-width="1"/>
+        <text x="350" y="212" text-anchor="middle" fill="#a78bfa" font-family="JetBrains Mono" font-size="9">PersistentVolume</text>
+        <!-- Nodes -->
+        <rect x="20" y="240" width="185" height="28" rx="4" fill="#0e0e18" stroke="#2a2a3a" stroke-width="1"/>
+        <text x="112" y="258" text-anchor="middle" fill="#8888a8" font-family="JetBrains Mono" font-size="9">Node 1 (worker)</text>
+        <rect x="215" y="240" width="185" height="28" rx="4" fill="#0e0e18" stroke="#2a2a3a" stroke-width="1"/>
+        <text x="307" y="258" text-anchor="middle" fill="#8888a8" font-family="JetBrains Mono" font-size="9">Node 2 (worker)</text>
+      </svg>
+    </div>
+    <div>
+      <div class="card red">
+        <h3 class="r">Pod</h3>
+        <p>Smallest deployable unit. One or more containers sharing network/storage.</p>
+      </div>
+      <div class="card green" style="margin-top:.3em;">
+        <h3 class="g">Service</h3>
+        <p>Stable network endpoint that load-balances across pod replicas.</p>
+      </div>
+      <div class="card purple" style="margin-top:.3em;">
+        <h3 class="p">Deployment</h3>
+        <p>Manages pod replicas, rolling updates, and rollbacks declaratively.</p>
+      </div>
+      <div class="card amber" style="margin-top:.3em;">
+        <h3 class="a">Ingress</h3>
+        <p>Routes external HTTP/S traffic to services. Handles TLS termination and path-based routing.</p>
+      </div>
+      <pre><code class="language-bash"># Common kubectl commands
+kubectl get pods
+kubectl apply -f deployment.yaml
+kubectl scale deploy myapp --replicas=5
+kubectl rollout status deploy/myapp
+kubectl logs -f deploy/myapp</code></pre>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 17 — DEPLOYING TO CLOUD ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">16</span>
+    <h2>Deploying Containers to Cloud</h2>
+  </div>
+  <div class="cols cols-3">
+    <div class="card amber">
+      <h3 class="a">AWS ECS / Fargate</h3>
+      <ul>
+        <li>ECS = managed container orchestration</li>
+        <li>Fargate = serverless (no EC2 to manage)</li>
+        <li>Deep AWS integration (ALB, RDS, IAM)</li>
+        <li>Task definitions define containers</li>
+      </ul>
+      <pre><code class="language-bash"># Deploy with AWS CLI
+aws ecs update-service \
+  --cluster prod \
+  --service myapp \
+  --force-new-deployment</code></pre>
+    </div>
+    <div class="card green">
+      <h3 class="g">Google Cloud Run</h3>
+      <ul>
+        <li>Fully managed, scales to zero</li>
+        <li>Pay only when handling requests</li>
+        <li>Deploy from image or source</li>
+        <li>Built-in HTTPS &amp; load balancing</li>
+      </ul>
+      <pre><code class="language-bash"># Deploy to Cloud Run
+gcloud run deploy myapp \
+  --image gcr.io/proj/myapp:v1 \
+  --region us-central1 \
+  --allow-unauthenticated</code></pre>
+    </div>
+    <div class="card blue">
+      <h3 class="b">Azure Container Apps</h3>
+      <ul>
+        <li>Serverless container platform</li>
+        <li>Built on Kubernetes (KEDA + Envoy)</li>
+        <li>Scale to zero, event-driven</li>
+        <li>Dapr integration for microservices</li>
+      </ul>
+      <pre><code class="language-bash"># Deploy to Azure
+az containerapp create \
+  --name myapp \
+  --resource-group mygroup \
+  --image myapp:v1 \
+  --target-port 3000 \
+  --ingress external</code></pre>
+    </div>
+  </div>
+  <div class="card purple" style="margin-top:.4em;">
+    <h3 class="p">Which to choose?</h3>
+    <p><span class="a">Already on AWS?</span> Use ECS/Fargate. <span class="g">Want simplest option?</span> Google Cloud Run. <span class="b">Need Kubernetes?</span> EKS, GKE, or AKS. <span class="r">Small project?</span> See next slide for free/cheap options.</p>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 18 — FREE & CHEAP HOSTING ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">17</span>
+    <h2>Free &amp; Cheap Container Hosting</h2>
+  </div>
+  <p>You don't need a big budget to deploy containers. These platforms offer <span class="g">generous free tiers</span> for side projects and startups.</p>
+  <table>
+    <thead>
+      <tr><th>Platform</th><th>Free Tier</th><th>Pricing After</th><th>Key Features</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="g">Google Cloud Run</span></td>
+        <td>2M requests/mo, 360K vCPU-sec</td>
+        <td>Pay per request + compute</td>
+        <td>Scale to zero, HTTPS, custom domains</td>
+      </tr>
+      <tr>
+        <td><span class="p">Fly.io</span></td>
+        <td>3 shared VMs, 160GB bandwidth</td>
+        <td>~$2/mo per extra VM</td>
+        <td>Global edge deploy, built-in Postgres</td>
+      </tr>
+      <tr>
+        <td><span class="a">Railway</span></td>
+        <td>$5 free credit/mo</td>
+        <td>Usage-based (~$5-10/mo)</td>
+        <td>Git push deploy, databases included</td>
+      </tr>
+      <tr>
+        <td><span class="b">Render</span></td>
+        <td>Free for static + web services</td>
+        <td>$7/mo for always-on</td>
+        <td>Auto-deploy from Git, managed DBs</td>
+      </tr>
+      <tr>
+        <td><span class="r">Coolify</span></td>
+        <td>Self-hosted (free OSS)</td>
+        <td>VPS cost only (~$5/mo)</td>
+        <td>Self-hosted PaaS, Heroku alternative</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="cols cols-2" style="margin-top:.4em;">
+    <div class="card green">
+      <h3 class="g">Fastest Path to Production</h3>
+      <pre><code class="language-bash"># Google Cloud Run (from Dockerfile)
+gcloud run deploy --source .
+
+# Fly.io
+fly launch  # auto-detects Dockerfile
+fly deploy
+
+# Railway
+railway up  # deploys current directory</code></pre>
+    </div>
+    <div class="card amber">
+      <h3 class="a">Recommendation</h3>
+      <p>For hobby projects: <span class="g">Cloud Run</span> (generous free tier, scales to zero). For small production apps: <span class="p">Fly.io</span> (predictable pricing, global edge). For teams: <span class="a">Railway</span> (great DX, includes databases).</p>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 19 — COMMON PITFALLS ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">18</span>
+    <h2>Common Docker Pitfalls &amp; Debugging</h2>
+  </div>
+  <div class="cols cols-2">
+    <div>
+      <div class="card red">
+        <h3 class="r">Frequent Mistakes</h3>
+        <ul>
+          <li><span class="a">Huge images</span> &mdash; using <code>node:20</code> (1GB) instead of <code>node:20-alpine</code> (130MB)</li>
+          <li><span class="a">No .dockerignore</span> &mdash; copying <code>node_modules</code>, <code>.git</code> into the image</li>
+          <li><span class="a">COPY . .</span> before <code>npm install</code> &mdash; busts layer cache on every code change</li>
+          <li><span class="a">Using latest tag</span> &mdash; builds are not reproducible</li>
+          <li><span class="a">Ignoring signals</span> &mdash; app doesn't handle SIGTERM, slow shutdowns</li>
+          <li><span class="a">Logging to files</span> &mdash; Docker expects stdout/stderr</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div class="card green">
+        <h3 class="g">Debugging Toolkit</h3>
+      </div>
+      <pre><code class="language-bash"># Why did my container crash?
+docker logs myapp --tail 50
+
+# What's happening inside right now?
+docker exec -it myapp sh
+
+# Inspect the full container config
+docker inspect myapp
+
+# Check resource usage
+docker stats myapp
+
+# See what's eating disk space
+docker system df
+
+# Debug a failed build
+docker build --progress=plain \
+  --no-cache -t myapp .
+
+# Dive into image layers
+# (install 'dive' tool)
+dive myapp:latest</code></pre>
+    </div>
+  </div>
+  <div class="card amber" style="margin-top:.3em;">
+    <h3 class="a">Container Exits Immediately?</h3>
+    <p>Check: Is <code>CMD</code> running a foreground process? Did you use <code>exec</code> form <code>CMD ["node", "server.js"]</code> vs shell form <code>CMD node server.js</code>? Is the app crashing? Check logs with <code>docker logs</code>.</p>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 20 — SUMMARY ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">19</span>
+    <h2>Summary &amp; Further Reading</h2>
+  </div>
+  <div class="cols cols-2">
+    <div>
+      <div class="card amber">
+        <h3 class="a">Key Takeaways</h3>
+        <ul>
+          <li>Containers package your app with all dependencies</li>
+          <li>Docker makes building &amp; running containers easy</li>
+          <li>Multi-stage builds keep images small &amp; secure</li>
+          <li>Docker Compose manages multi-service apps locally</li>
+          <li>Container registries store &amp; distribute images</li>
+          <li>Security: non-root, minimal images, scan regularly</li>
+          <li>Orchestration (K8s, ECS) handles production scale</li>
+          <li>Cloud Run / Fly.io for easy, cheap deployments</li>
+        </ul>
+      </div>
+      <div class="card green" style="margin-top:.4em;">
+        <h3 class="g">Learning Path</h3>
+        <div class="ss-row">
+          <span class="ss-node active">Dockerfile</span>
+          <span class="ss-arrow">&rarr;</span>
+          <span class="ss-node active">Compose</span>
+          <span class="ss-arrow">&rarr;</span>
+          <span class="ss-node">CI/CD</span>
+          <span class="ss-arrow">&rarr;</span>
+          <span class="ss-node">K8s</span>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card purple">
+        <h3 class="p">Further Reading</h3>
+        <ul>
+          <li><span class="b">Docker Docs</span> &mdash; docs.docker.com</li>
+          <li><span class="b">Dockerfile Best Practices</span> &mdash; docs.docker.com/develop/develop-images/dockerfile_best-practices</li>
+          <li><span class="b">Kubernetes Docs</span> &mdash; kubernetes.io/docs</li>
+          <li><span class="b">"Docker Deep Dive"</span> by Nigel Poulton</li>
+          <li><span class="b">"Kubernetes Up &amp; Running"</span> by Hightower, Burns, Beda</li>
+        </ul>
+      </div>
+      <div class="card blue" style="margin-top:.4em;">
+        <h3 class="b">Hands-On Practice</h3>
+        <ul>
+          <li>Containerise an existing project</li>
+          <li>Write a docker-compose.yml with app + DB</li>
+          <li>Push to GHCR via GitHub Actions</li>
+          <li>Deploy to Cloud Run or Fly.io</li>
+          <li>Try <code>minikube</code> for local Kubernetes</li>
+        </ul>
+      </div>
+      <div class="card red" style="margin-top:.4em;">
+        <h3 class="r">Tools Worth Knowing</h3>
+        <p><span class="mono">dive</span> (inspect layers) &middot; <span class="mono">hadolint</span> (lint Dockerfiles) &middot; <span class="mono">trivy</span> (security scan) &middot; <span class="mono">lazydocker</span> (TUI) &middot; <span class="mono">ctop</span> (container top)</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+</div><!-- /slides -->
+</div><!-- /reveal -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/plugin/highlight/highlight.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/plugin/highlight/monokai.min.css">
+<script>
+Reveal.initialize({
+  hash: true,
+  slideNumber: 'c/t',
+  transition: 'fade',
+  transitionSpeed: 'fast',
+  controls: true,
+  progress: true,
+  center: false,
+  width: 1100,
+  height: 900,
+  margin: 0.01,
+  plugins: [RevealHighlight],
+  highlight: { theme: 'monokai' }
+});
+</script>
+<script>
+(function(){
+  var h = Reveal.getConfig().height || 900;
+  var m = Reveal.getConfig().margin || 0.02;
+  var maxH = Math.floor(h * (1 - 2 * m)) + 'px';
+  function fixSlides(){
+    document.querySelectorAll('.reveal .slides>section,.reveal .slides>section>section').forEach(function(s){
+      s.style.display = 'block';
+      s.style.maxHeight = maxH;
+    });
+  }
+  Reveal.on('ready', fixSlides);
+  Reveal.on('slidechanged', fixSlides);
+})();
+</script>
+</body>
+</html>
