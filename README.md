@@ -43,6 +43,12 @@ An interactive Reveal.js presentation on Docker and containers for deployment �
 | Fullscreen | `F` |
 | Export to PDF | Append `?print-pdf` to URL, then print |
 
+## See also
+
+- [Cloud_aaS_03_PaaS_FaaS_CaaS](https://github.com/BrendanJamesLynskey/Cloud_aaS_03_PaaS_FaaS_CaaS) — Containers-as-a-Service in depth: Cloud Run / Fargate / Container Apps / Fly Machines, plus managed Kubernetes (EKS / GKE / AKS).
+- Series hub: [Cloud `*aaS`](https://github.com/BrendanJamesLynskey/Cloud_aaS_Hub).
+- Companion: [full Docker series](https://github.com/BrendanJamesLynskey/Software#docker) — networking, Compose, volumes, security, multi-stage, CI, Swarm, troubleshooting, LLMs.
+
 ## Technology
 
 [Reveal.js 4.6](https://revealjs.com) · [highlight.js](https://highlightjs.org) · Playfair Display + DM Sans + JetBrains Mono
