@@ -51,7 +51,7 @@ An interactive Reveal.js presentation on Docker and containers for deployment �
 
 ## Technology
 
-[Reveal.js 4.6](https://revealjs.com) · [highlight.js](https://highlightjs.org) · Playfair Display + DM Sans + JetBrains Mono
+[Reveal.js 4.6](https://revealjs.com) · [highlight.js](https://highlightjs.org) · Big Shoulders Display + Public Sans + Overpass Mono
 
 Single self-contained `index.html` — no build step, no npm, no dependencies to install.
 
